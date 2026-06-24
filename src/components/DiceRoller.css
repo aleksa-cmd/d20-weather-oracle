@@ -1,0 +1,120 @@
+.dice-roller {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.d20-wrapper {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  filter: drop-shadow(0 0 20px rgba(250, 204, 21, 0.4));
+  transition: filter 0.3s;
+}
+
+.d20-wrapper.rolling {
+  animation: diceRoll 2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  filter: drop-shadow(0 0 35px rgba(250, 204, 21, 0.8));
+}
+
+.d20-wrapper.landed {
+  filter: drop-shadow(0 0 28px rgba(250, 204, 21, 0.6));
+  animation: landedPulse 0.4s ease-out;
+}
+
+@keyframes diceRoll {
+  0%   { transform: rotate(0deg)    scale(1);    }
+  15%  { transform: rotate(180deg)  scale(1.15); }
+  35%  { transform: rotate(540deg)  scale(1.2);  }
+  55%  { transform: rotate(900deg)  scale(1.18); }
+  75%  { transform: rotate(1200deg) scale(1.1);  }
+  90%  { transform: rotate(1380deg) scale(1.04); }
+  100% { transform: rotate(1440deg) scale(1);    }
+}
+
+@keyframes landedPulse {
+  0%   { transform: scale(1.15); }
+  60%  { transform: scale(0.96); }
+  100% { transform: scale(1);    }
+}
+
+.d20-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.d20-face {
+  fill: #0f172a;
+  stroke: #facc15;
+  stroke-width: 2.5;
+  transition: fill 0.3s;
+}
+
+.d20-wrapper.rolling .d20-face {
+  fill: #1e3a5f;
+}
+
+.d20-wrapper.landed .d20-face {
+  fill: #1a2a4a;
+}
+
+.d20-number {
+  font-family: 'Georgia', serif;
+  font-size: 32px;
+  font-weight: bold;
+  fill: #facc15;
+  dominant-baseline: middle;
+  text-anchor: middle;
+  user-select: none;
+}
+
+.d20-wrapper.rolling .d20-number {
+  fill: #fde68a;
+}
+
+.dice-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  fill: #94a3b8;
+  text-anchor: middle;
+}
+
+.roll-btn {
+  padding: 0.75rem 2.5rem;
+  background: linear-gradient(135deg, #facc15, #f59e0b);
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  box-shadow: 0 4px 15px rgba(250, 204, 21, 0.35);
+}
+
+.roll-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(250, 204, 21, 0.5);
+}
+
+.roll-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.roll-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.roll-result {
+  font-size: 1.1rem;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.roll-result strong {
+  color: #facc15;
+  font-size: 1.4rem;
+}
