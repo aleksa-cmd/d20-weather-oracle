@@ -3,57 +3,68 @@ import * as THREE from 'three'
 import './DiceRoller.css'
 
 export default function DiceRoller({ onRoll }) {
-  const mountRef   = useRef(null)
-  const threeRef   = useRef(null)
-  const rollRef    = useRef({ active: false, frame: 0, total: 160, vx: 0, vy: 0, vz: 0, onDone: null })
+  const mountRef = useRef(null)
+  const threeRef = useRef(null)
+  const rollRef  = useRef({ active: false, frame: 0, total: 160, vx: 0, vy: 0, vz: 0, onDone: null })
   const [isRolling, setIsRolling] = useState(false)
-  const [result, setResult]       = useState(null)
-  const [showNum, setShowNum]     = useState(false)
+  const [result,    setResult]    = useState(null)
+  const [showNum,   setShowNum]   = useState(false)
 
   useEffect(() => {
     const container = mountRef.current
     const W = container.offsetWidth || 480
     const H = 320
 
-    // ── Scene ──────────────────────────────────────────────────────────────
-    const scene    = new THREE.Scene()
-    const camera   = new THREE.PerspectiveCamera(52, W / H, 0.1, 100)
+    // ── Scene / camera ─────────────────────────────────────────────────────
+    const scene  = new THREE.Scene()
+    const camera = new THREE.PerspectiveCamera(52, W / H, 0.1, 100)
     camera.position.z = 5.8
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     renderer.setSize(W, H)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.setClearColor(0x0a0f1e, 1)
+    // Use ACES tone-mapping for nicer output with physically correct lights
+    renderer.toneMapping        = THREE.ACESFilmicToneMapping
+    renderer.toneMappingExposure = 1.2
     container.appendChild(renderer.domElement)
 
-    // ── Lights ─────────────────────────────────────────────────────────────
-    scene.add(new THREE.AmbientLight(0x223366, 4))
-    const keyLight = new THREE.PointLight(0xffd060, 5, 40)
-    keyLight.position.set(5, 6, 5)
+    // ── Lights (r155+ physically correct — intensities in candelas) ────────
+    scene.add(new THREE.AmbientLight(0x223366, 2))
+
+    const keyLight = new THREE.PointLight(0xffd060, 150, 40)
+    keyLight.position.set(5, 6, 5)          // ← must use .set(), not Object.assign
     scene.add(keyLight)
-    const fillLight = new THREE.PointLight(0x4466ff, 2.5, 30)
+
+    const fillLight = new THREE.PointLight(0x4466ff, 80, 30)
     fillLight.position.set(-5, -3, -4)
     scene.add(fillLight)
-    scene.add(Object.assign(new THREE.PointLight(0xffffff, 1.5, 20), {
-      position: new THREE.Vector3(0, -6, 2)
-    }))
 
-    // ── D20 ────────────────────────────────────────────────────────────────
+    const rimLight = new THREE.PointLight(0xffffff, 60, 20)
+    rimLight.position.set(0, -6, 2)
+    scene.add(rimLight)
+
+    // ── D20 (icosahedron) — MeshStandardMaterial for PBR lights ───────────
     const geo = new THREE.IcosahedronGeometry(2, 0)
-    const mat = new THREE.MeshPhongMaterial({
-      color: 0x0e2060, emissive: 0x040e30,
-      specular: 0x99aaff, shininess: 140,
-      transparent: true, opacity: 0.93,
+    const mat = new THREE.MeshStandardMaterial({
+      color:       0x0e2060,
+      emissive:    0x040e30,
+      roughness:   0.25,
+      metalness:   0.70,
+      transparent: true,
+      opacity:     0.93,
     })
     const mesh = new THREE.Mesh(geo, mat)
     scene.add(mesh)
 
+    // Gold outer edges
     const edgeMat = new THREE.LineBasicMaterial({ color: 0xfacc15 })
     mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeMat))
 
-    const innerMat = new THREE.LineBasicMaterial({ color: 0x1a3070 })
+    // Dim inner edges for depth
     mesh.add(new THREE.LineSegments(
-      new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(1.65, 0)), innerMat
+      new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(1.65, 0)),
+      new THREE.LineBasicMaterial({ color: 0x1a3070 })
     ))
 
     threeRef.current = { renderer, mesh, edgeMat, keyLight }
@@ -73,19 +84,20 @@ export default function DiceRoller({ onRoll }) {
         mesh.rotation.y += rs.vy * speed
         mesh.rotation.z += rs.vz * speed
 
-        const pulse = 0.6 + 0.4 * Math.sin(rs.frame * 0.18)
-        edgeMat.color.setRGB(pulse, pulse * 0.8, 0)
+        // Pulse edges orange→gold while rolling
+        const p = 0.6 + 0.4 * Math.sin(rs.frame * 0.18)
+        edgeMat.color.setRGB(p, p * 0.8, 0)
 
         rs.frame++
         if (rs.frame >= rs.total) {
           rs.active = false
           edgeMat.color.set(0xfacc15)
-          keyLight.intensity = 8
-          setTimeout(() => { keyLight.intensity = 5 }, 600)
+          keyLight.intensity = 220
+          setTimeout(() => { keyLight.intensity = 150 }, 600)
           rs.onDone?.()
         }
       } else {
-        mesh.rotation.y += 0.004
+        mesh.rotation.y += 0.004   // idle spin
       }
 
       renderer.render(scene, camera)
@@ -108,8 +120,8 @@ export default function DiceRoller({ onRoll }) {
 
     rollRef.current = {
       active: true,
-      frame: 0,
-      total: 160,
+      frame:  0,
+      total:  160,
       vx:  0.10 + Math.random() * 0.08,
       vy:  0.13 + Math.random() * 0.10,
       vz: (Math.random() - 0.5) * 0.06,
