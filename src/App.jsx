@@ -16,7 +16,7 @@ export default function App() {
       <main className="main-card">
         <DiceRoller onRoll={setLastRoll} />
         <div className="divider" />
-        <WeatherSearch suggestedValue={lastRoll} />
+        <WeatherSearch diceRoll={lastRoll} />
       </main>
 
       <footer className="footer">

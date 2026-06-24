@@ -1,67 +1,51 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './WeatherSearch.css'
 
-export default function WeatherSearch({ suggestedValue }) {
-  const [inputVal, setInputVal] = useState(suggestedValue ?? '')
-  const [loading, setLoading] = useState(false)
-  const [matches, setMatches] = useState(null)
-  const [error, setError] = useState(null)
+export default function WeatherSearch({ diceRoll }) {
+  const [loading, setLoading]         = useState(false)
+  const [matches, setMatches]         = useState(null)
+  const [error, setError]             = useState(null)
   const [searchedTemp, setSearchedTemp] = useState(null)
 
-  const parsed = parseInt(inputVal, 10)
-  const targetTemp = !isNaN(parsed) && parsed >= 1 && parsed <= 20 ? parsed * 2 : null
+  const targetTemp = diceRoll ? diceRoll * 2 : null
 
-  async function search() {
-    if (targetTemp === null) return
+  useEffect(() => {
+    if (!targetTemp) return
     setLoading(true)
     setError(null)
     setMatches(null)
     setSearchedTemp(targetTemp)
 
-    try {
-      const res = await fetch(`/api/weather?temp=${targetTemp}`)
-      if (!res.ok) throw new Error(`Server error ${res.status}`)
-      const data = await res.json()
-      setMatches(data.matches ?? [])
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
-  }
+    fetch(`/api/weather?temp=${targetTemp}`)
+      .then(r => {
+        if (!r.ok) throw new Error(`Server error ${r.status}`)
+        return r.json()
+      })
+      .then(data => setMatches(data.matches ?? []))
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false))
+  }, [diceRoll])
 
-  function handleKeyDown(e) {
-    if (e.key === 'Enter') search()
+  if (!diceRoll) {
+    return (
+      <div className="weather-idle">
+        <p>Roll the dice to find your city</p>
+      </div>
+    )
   }
 
   return (
     <div className="weather-search">
-      <h2>Weather Oracle</h2>
-
-      <div className="input-row">
-        <input
-          className="dice-input"
-          type="number"
-          min="1"
-          max="20"
-          placeholder="Enter dice roll (1–20)"
-          value={inputVal}
-          onChange={e => setInputVal(e.target.value)}
-          onKeyDown={handleKeyDown}
-        />
-        <button
-          className="search-btn"
-          onClick={search}
-          disabled={targetTemp === null || loading}
-        >
-          {loading ? <span className="spinner" /> : 'Search'}
-        </button>
+      <div className="calc-display">
+        {diceRoll} × 2 = <span>{targetTemp}°C</span>
+        <span className="calc-sub"> — searching cities at this temperature</span>
       </div>
 
-      {targetTemp !== null && (
-        <p className="calc-display">
-          {parsed} × 2 = <span>{targetTemp}°C</span> — finding cities at this temperature…
-        </p>
+      {loading && (
+        <div className="spinner-wrap">
+          <div className="spinner" />
+          <span>Querying world cities…</span>
+        </div>
       )}
 
       {error && <p className="error-msg">Error: {error}</p>}
@@ -72,7 +56,7 @@ export default function WeatherSearch({ suggestedValue }) {
             Cities near {searchedTemp}°C right now
           </div>
           {matches.length === 0 ? (
-            <p className="no-matches">No cities found within 2°C of {searchedTemp}°C</p>
+            <p className="no-matches">No cities found near {searchedTemp}°C</p>
           ) : (
             matches.map(city => (
               <div key={city.name} className="city-row">
