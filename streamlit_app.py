@@ -313,7 +313,7 @@ DICE_3D = f"""<!DOCTYPE html>
 </body>
 </html>"""
 
-st.iframe(srcdoc=DICE_3D, height=320)
+st.components.v1.html(DICE_3D, height=320)
 
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
